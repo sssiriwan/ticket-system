@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: tickets
+    ports: ["55432:5432"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app", "-d", "tickets"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    env_file: ./apps/api/.env.example
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/tickets
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy    
+      redis:
+        condition: service_started
+    ports: ["3001:3001"]
+    command: >
+      sh -lc "cd apps/api &&
+              pnpm exec prisma migrate deploy &&
+              node dist/main.js"
+
+  # web:
+  #   build:
+  #     context: ./apps/web
+  #     dockerfile: docker/web.Dockerfile
+  #   env_file: ./apps/web/.env.example
+  #   environment:
+  #     NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
+  #     NODE_ENV: development
+  #   depends_on: [api]
+  #   ports: ["3000:3000"]
+
+volumes:
+  db_data: {}
+  redis_data: {}

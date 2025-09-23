@@ -1,0 +1,15 @@
+node_modules
+.pnpm-store
+.env
+.env.*
+dist
+.coverage
+.prisma
+.DS_Store
+.idea
+.vscode
+apps/**/node_modules
+apps/**/dist
+apps/**/.next
+apps/**/.turbo
+apps/**/.env

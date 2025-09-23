@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.git
+.gitignore
+.DS_Store
+apps/**/node_modules
+apps/**/dist
+apps/**/.next
+apps/**/.turbo
+apps/**/.env
