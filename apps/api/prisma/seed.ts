@@ -1,4 +1,4 @@
-// apps/api/prisma/seed.ts
+/// <reference types="node" />
 import { PrismaClient, Role, SeatStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -6,12 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding start...');
 
-  // 1) สร้าง user admin + user ปกติ (แค่ตัวอย่าง)
-  // รหัสผ่านยัง plain-text เพื่อทดสอบ (แนะนำแก้ภายหลัง)
   const admin = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {},
-    create: { email: 'admin@example.com', password: 'admin123', role: Role.ADMIN },
+    create: {
+      email: 'admin@example.com',
+      password: 'admin123',
+      role: Role.ADMIN,
+    },
   });
   const user = await prisma.user.upsert({
     where: { email: 'user@example.com' },
@@ -26,11 +28,7 @@ async function main() {
       name: 'Bangkok Arena',
       address: 'Bangkok, Thailand',
       sections: {
-        create: [
-          { name: 'VIP' },
-          { name: 'A' },
-          { name: 'B' },
-        ],
+        create: [{ name: 'VIP' }, { name: 'A' }, { name: 'B' }],
       },
     },
     include: { sections: true },
@@ -51,7 +49,9 @@ async function main() {
       });
     }
   }
-  const seats = await prisma.seat.findMany({ where: { section: { venueId: venue.id } } });
+  const seats = await prisma.seat.findMany({
+    where: { section: { venueId: venue.id } },
+  });
   console.log(`Seats created: ${seats.length}`);
 
   // 3) Event + ShowTime + PriceTier
@@ -72,13 +72,21 @@ async function main() {
   });
 
   const [vip, a, b] = await Promise.all([
-    prisma.priceTier.create({ data: { showId: show.id, name: 'VIP', price: 3500 } }),
-    prisma.priceTier.create({ data: { showId: show.id, name: 'A', price: 2500 } }),
-    prisma.priceTier.create({ data: { showId: show.id, name: 'B', price: 1500 } }),
+    prisma.priceTier.create({
+      data: { showId: show.id, name: 'VIP', price: 3500 },
+    }),
+    prisma.priceTier.create({
+      data: { showId: show.id, name: 'A', price: 2500 },
+    }),
+    prisma.priceTier.create({
+      data: { showId: show.id, name: 'B', price: 1500 },
+    }),
   ]);
 
   // 4) SeatInventory = map show × seat (+ ใส่ priceTier ตาม section ชื่อ)
-  const sections = await prisma.section.findMany({ where: { venueId: venue.id } });
+  const sections = await prisma.section.findMany({
+    where: { venueId: venue.id },
+  });
   const sectionMap = new Map(sections.map((s) => [s.name, s.id]));
   const priceBySectionId = new Map<string, string>([
     [sectionMap.get('VIP')!, vip.id],
@@ -86,7 +94,9 @@ async function main() {
     [sectionMap.get('B')!, b.id],
   ]);
 
-  const seatsBySection = await prisma.seat.findMany({ where: { section: { venueId: venue.id } } });
+  const seatsBySection = await prisma.seat.findMany({
+    where: { section: { venueId: venue.id } },
+  });
 
   // ใส่ทีละล็อตเพื่อไม่ยิง bulk ใหญ่เกิน
   const chunkSize = 300;
@@ -97,14 +107,51 @@ async function main() {
         showId: show.id,
         seatId: s.id,
         status: SeatStatus.AVAILABLE,
-        priceTierId: priceBySectionId.get(s.sectionId)!, // ใช้ priceTier ตาม section
+        priceTierId: priceBySectionId.get(s.sectionId)!, 
       })),
       skipDuplicates: true,
     });
   }
 
-  const invCount = await prisma.seatInventory.count({ where: { showId: show.id } });
+  const invCount = await prisma.seatInventory.count({
+    where: { showId: show.id },
+  });
   console.log(`SeatInventory created: ${invCount}`);
+
+  const priorities = ['LOW', 'MEDIUM', 'HIGH'] as const;
+  const statuses = ['OPEN', 'IN_PROGRESS', 'RESOLVED'] as const;
+
+  const now = Date.now();
+  const ticketsData = Array.from({ length: 50 }, (_, idx) => {
+    const i = idx + 1;
+    const priority = priorities[idx % priorities.length];
+    const status = statuses[idx % statuses.length];
+
+    
+    const createdAt = new Date(now - (50 - i) * 60 * 60 * 1000); 
+    const updatedAt = new Date(
+      createdAt.getTime() + (idx % 6) * 15 * 60 * 1000,
+    );
+
+    return {
+      title: `Sample Ticket #${i}`,
+      description: `Seeded ticket #${i} for testing flows (CRUD + Queue/Redis).`,
+      priority: priority as any, 
+      status: status as any, 
+      createdAt,
+      updatedAt,
+    };
+  });
+
+  await prisma.ticket.createMany({
+    data: ticketsData,
+    skipDuplicates: true,
+  });
+
+  const ticketCount = await prisma.ticket.count();
+  console.log(
+    `Tickets created: +${ticketsData.length} (total: ${ticketCount})`,
+  );
 
   console.log('Seeding done.');
 }

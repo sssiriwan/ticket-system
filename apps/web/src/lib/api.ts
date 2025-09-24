@@ -1,56 +1,35 @@
-import type {Ticket, TicketListResponse} from "@/type/ticket";
+import type {Ticket, TicketList} from "@/types/ticket";
 
-const API = process.env.NEXT_PUBLIC_API_URL!;
+const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
+    // ให้เป็น SSR สด ๆ
+    cache: "no-store",
     headers: {
-      "Content-Type": "application/json",
+      "content-type": "application/json",
       ...(init?.headers || {}),
     },
-    next: {revalidate: 0},
   });
   if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try {
-      const data = await res.json();
-      msg = (data as any)?.message || msg;
-    } catch {}
-    throw new Error(msg);
+    const body = await res.text();
+    throw new Error(body || res.statusText);
   }
   return res.json() as Promise<T>;
 }
 
 export const ticketsApi = {
-  list: (q: {
-    status?: string;
-    priority?: string;
-    search?: string;
-    page?: string;
-    pageSize?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  }) => {
-    const sp = new URLSearchParams(q as Record<string, string>);
-    return request<TicketListResponse>(`/tickets?${sp.toString()}`);
-  },
-  create: (body: {title: string; description?: string; priority: string}) =>
-    request<Ticket>("/tickets", {method: "POST", body: JSON.stringify(body)}),
-  get: (id: string) => request<Ticket>(`/tickets/${id}`),
-  update: (
-    id: string,
-    body: Partial<{
-      title: string;
-      description: string;
-      priority: string;
-      status: string;
-    }>
-  ) =>
-    request<Ticket>(`/tickets/${id}`, {
+  list: (q: Record<string, string>) =>
+    http<TicketList>(`/tickets?` + new URLSearchParams(q).toString()),
+  get: (id: string) => http<Ticket>(`/tickets/${id}`),
+  create: (dto: {title: string; description?: string; priority: string}) =>
+    http<Ticket>(`/tickets`, {method: "POST", body: JSON.stringify(dto)}),
+  update: (id: string, dto: Partial<Ticket>) =>
+    http<Ticket>(`/tickets/${id}`, {
       method: "PATCH",
-      body: JSON.stringify(body),
+      body: JSON.stringify(dto),
     }),
   remove: (id: string) =>
-    request<{ok: true}>(`/tickets/${id}`, {method: "DELETE"}),
+    http<{ok: true}>(`/tickets/${id}`, {method: "DELETE"}),
 };
