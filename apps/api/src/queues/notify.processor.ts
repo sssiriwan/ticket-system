@@ -1,12 +1,9 @@
-import { Worker } from 'bullmq';
-import IORedis from 'ioredis';
-const connection = new IORedis(process.env.REDIS_URL!);
-new Worker(
-  'notify',
-  async (job) => {
-    console.log(
-      `[notify] Ticket ${job.data.ticketId} created — sending notification...`,
-    );
-  },
-  { connection },
-);
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import type { Job } from 'bullmq';
+
+@Processor('notify')
+export class NotifyProcessor extends WorkerHost {
+  async process(job: Job<{ ticketId: string }>): Promise<void> {
+    console.log('[TicketNotifyJob]', job.id, job.data.ticketId);
+  }
+}
