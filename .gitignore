@@ -13,3 +13,4 @@ apps/**/dist
 apps/**/.next
 apps/**/.turbo
 apps/**/.env
+apps/web/next-env.d.ts
