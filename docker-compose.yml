@@ -21,27 +21,27 @@ services:
     volumes:
       - redis_data:/data
 
-  api:
-    build:
-      context: .
-      dockerfile: docker/api.Dockerfile
-    env_file: ./apps/api/.env.example
-    environment:
-      DATABASE_URL: postgresql://app:app@db:5432/tickets
-      REDIS_URL: redis://redis:6379
-      NODE_ENV: development
-      JWT_SECRET: supersecret_change_me
-      JWT_EXPIRES_IN: 1d
-    depends_on:
-      db:
-        condition: service_healthy    
-      redis:
-        condition: service_started
-    ports: ["3001:3001"]
-    command: >
-      sh -lc "cd apps/api &&
-              pnpm exec prisma migrate deploy &&
-              node dist/main.js"
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/api.Dockerfile
+  #   env_file: ./apps/api/.env.example
+  #   environment:
+  #     DATABASE_URL: postgresql://app:app@db:5432/tickets
+  #     REDIS_URL: redis://redis:6379
+  #     NODE_ENV: development
+  #     JWT_SECRET: supersecret_change_me
+  #     JWT_EXPIRES_IN: 1d
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy    
+  #     redis:
+  #       condition: service_started
+  #   ports: ["3001:3001"]
+  #   command: >
+  #     sh -lc "cd apps/api &&
+  #             pnpm exec prisma migrate deploy &&
+  #             node dist/main.js"
 
   # web:
   #   build:
