@@ -1,10 +1,9 @@
 # Ticket System – Local Dev Guide (Docker: DB + Redis)
 
 ## 1) Prerequisites
-
- -Node.js (v18+ recommended)
- -pnpm
- -Docker & Docker Compose
+- Node.js (v18+ recommended)
+- pnpm
+- Docker & Docker Compose
 
 ## 2) Start Database & Redis with Docker
 Your docker-compose.yml already defines db and redis. No changes needed if you only run these two services.
